@@ -23,6 +23,8 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: blimbeng38
           POSTGRES_DB: simple_bank
+        ports:
+          - 5433:5433
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
