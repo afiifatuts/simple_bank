@@ -9,25 +9,32 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	mockdb "github.com/afiifatuts/simple_bank/db/mock"
 	db "github.com/afiifatuts/simple_bank/db/sqlc"
+	"github.com/afiifatuts/simple_bank/token"
 	"github.com/afiifatuts/simple_bank/util"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetAccountApi(t *testing.T) {
-	account := randomAccount()
+	user, _ := randomUser(t)
+	account := randomAccount(user.Username)
 
 	testCases := []struct {
 		name          string
 		accountId     int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildSubs     func(store *mockdb.MockStore)
 		checkResponse func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{{
 		name:      "OK",
 		accountId: account.ID,
+		setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+		},
 		buildSubs: func(store *mockdb.MockStore) {
 			//build stubs
 			store.EXPECT().
@@ -46,6 +53,9 @@ func TestGetAccountApi(t *testing.T) {
 		{
 			name:      "NotFound",
 			accountId: account.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildSubs: func(store *mockdb.MockStore) {
 				//build stubs
 				store.EXPECT().
@@ -61,6 +71,9 @@ func TestGetAccountApi(t *testing.T) {
 		{
 			name:      "InternalError",
 			accountId: account.ID,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildSubs: func(store *mockdb.MockStore) {
 				//build stubs
 				store.EXPECT().
@@ -76,6 +89,9 @@ func TestGetAccountApi(t *testing.T) {
 		{
 			name:      "BadRequest",
 			accountId: 0,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, authorizationTypeBearer, user.Username, time.Minute)
+			},
 			buildSubs: func(store *mockdb.MockStore) {
 				//build stubs
 				store.EXPECT().
@@ -107,6 +123,7 @@ func TestGetAccountApi(t *testing.T) {
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
+			tc.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 			tc.checkResponse(t, recorder)
 
@@ -116,10 +133,10 @@ func TestGetAccountApi(t *testing.T) {
 
 }
 
-func randomAccount() db.Account {
+func randomAccount(owner string) db.Account {
 	return db.Account{
 		ID:       util.RandomInt(1, 1000),
-		Owner:    util.RandomOwner(),
+		Owner:    owner,
 		Balance:  util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}
