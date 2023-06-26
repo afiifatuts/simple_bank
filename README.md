@@ -1,0 +1,5 @@
+# simple_bank
+Simple bank Inspired by TECH SCHOOL
+
+
+Postman Documentation : [https://documenter.getpostman.com/view/1752293/UVkqraLx](https://documenter.getpostman.com/view/27682343/2s93z6f4wk)https://documenter.getpostman.com/view/27682343/2s93z6f4wk
